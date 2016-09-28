@@ -71,6 +71,8 @@ const int VOLTAGE_THRESHOLD = 1000;
 const unsigned long SENSOR_IGNORE_MS = 200;
 /** 最大の停止時間*/
 const unsigned long SENSOR_IGNORE_MAX = 1000;
+/** この値より電圧が低い時は、停止はしないが加算もしない*/
+const unsigned long SENSOR_IGNORE_TICK = 1013;
 /** 1ループごとに減衰させる待ち時間のパーセンテージ*/
 const unsigned long SENSOR_GENSUI = 99;
 /** 現在の停止時間*/
@@ -181,7 +183,14 @@ void loop() {
   }
 
   // 閾値のオーバーチェック
-  if (min(min1, min2) > 0) {
+  if (minv < SENSOR_IGNORE_TICK) {
+    if (VOLT_LOW_ENABLED) {
+      Serial.print("tick low: ");
+      dispData(min1, max1, min2, max2, minv);
+    }
+  }
+  else if (min(min1, min2) > 0) 
+  {
     int sa = max(max1-min1, max2-min2);
     isSensor[1] = (sa >= THRESHOLD);
   }
@@ -229,6 +238,7 @@ void loop() {
     Serial.println("min volt="+String(minv));
   }
 
+  // 処理を一旦離す
   delay(DELAY_LOOP);
 }
 
