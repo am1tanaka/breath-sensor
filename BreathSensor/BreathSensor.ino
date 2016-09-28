@@ -72,7 +72,7 @@ const unsigned long SENSOR_IGNORE_MS = 200;
 /** 最大の停止時間*/
 const unsigned long SENSOR_IGNORE_MAX = 1000;
 /** この値より電圧が低い時は、停止はしないが加算もしない*/
-const unsigned long SENSOR_IGNORE_TICK = 1013;
+const unsigned long SENSOR_IGNORE_TICK = 1012;
 /** 1ループごとに減衰させる待ち時間のパーセンテージ*/
 const unsigned long SENSOR_GENSUI = 99;
 /** 現在の停止時間*/
