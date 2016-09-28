@@ -177,7 +177,7 @@ void loop() {
     delay(sensorIgnoreMs);
 
     // 待ち時間を増加させる
-    sensorIgnoreMs += SENSOR_IGNORE_MS;
+    sensorIgnoreMs = sensorIgnoreMs*2;
     sensorIgnoreMs = min(sensorIgnoreMs, SENSOR_IGNORE_MAX);
     return;
   }
