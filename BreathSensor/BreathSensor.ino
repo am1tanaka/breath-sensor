@@ -57,9 +57,6 @@ const unsigned long MOTOR_IGNORE_MS = 5000;
 /** モーターの角度*/
 const int MOTOR_MAX = 160;
 
-/** 前回、モーターを動かしたms*/
-unsigned long lastMotor = 0;
-
 /** 現在のモーターの位置*/
 int nowMotor = 0;
 
@@ -70,7 +67,7 @@ const int VOLTAGE_THRESHOLD = 1000;
 /** 検出停止ms*/
 const unsigned long SENSOR_IGNORE_MS = 200;
 /** 最大の停止時間*/
-const unsigned long SENSOR_IGNORE_MAX = 1000;
+const unsigned long SENSOR_IGNORE_MAX = 2000;
 /** この値より電圧が低い時は、停止はしないが加算もしない*/
 const unsigned long SENSOR_IGNORE_TICK = 1012;
 /** 1ループごとに減衰させる待ち時間のパーセンテージ*/
@@ -98,7 +95,7 @@ const byte CMD_CLEAR = 'c';
 const byte CMD_READ = 'r';
 
 /** 2回連続で閾値を超えていないとカウントしないためのフラグ*/
-bool isSensor[2] = {false, false};
+bool isLastSensor = false;
 
 /** セットアップの完了待ち*/
 volatile bool doneSetup = false;
@@ -170,12 +167,10 @@ void loop() {
     max2 = max(s2, max2);
   }
 
-  // 履歴を更新
-  isSensor[0] = isSensor[1];
-
   // センサーの停止をチェック
   sensorIgnoreMs = sensorIgnoreMs*SENSOR_GENSUI/100;
   sensorIgnoreMs = max(sensorIgnoreMs, SENSOR_IGNORE_MS);
+  //// 電源低下を確認
   if (minv < VOLTAGE_THRESHOLD) {
     if (VOLT_LOW_ENABLED) {
       dispData(min1, max1, min2, max2, minv);
@@ -183,7 +178,7 @@ void loop() {
     }
 
     digitalWrite(LED, LOW);
-    isSensor[0] = isSensor[1] = false;
+    isLastSensor = false;
     nowSum = 0;
     delay(sensorIgnoreMs);
 
@@ -194,6 +189,7 @@ void loop() {
   }
 
   // 閾値のオーバーチェック
+  bool isNowSensor = false;
   if (minv < SENSOR_IGNORE_TICK) {
     if (VOLT_LOW_ENABLED) {
       Serial.print("tick low: ");
@@ -203,39 +199,32 @@ void loop() {
   else if (min(min1, min2) > 0) 
   {
     int sa = max(max1-min1, max2-min2);
-    isSensor[1] = (sa >= THRESHOLD);
+    isNowSensor = (sa >= THRESHOLD);
   }
 
   // 今回ONで前回もONの時はLED ON
-  if (isSensor[0] && isSensor[1]) {
+  if (isLastSensor && isNowSensor) {
     nowSum++;
     digitalWrite(LED, HIGH);
   }
   else {
     digitalWrite(LED, LOW);
   }
+  // 今回の結果を、次回に伝える
+  isLastSensor = isNowSensor;
 
   // モーター発動チェック
   nowSum = nowSum * AVERAGE_COUNT / (AVERAGE_COUNT+1);
-  // 時間オーバーを監視
-  if (lastMotor > millis()) {
-    lastMotor = millis();
-  }
-  // 発動してから規定の時間が経過していて、閾値を超えている場合に発動
-  if ((millis()-lastMotor) < MOTOR_IGNORE_MS) {
-    // LEDを点灯しておく
-    digitalWrite(LED, HIGH);
+  if (nowSum > MOTOR_START) {
     nowSum = 0;           // 値をリセットする
-  }
-  else if (nowSum > MOTOR_START) {
-    nowSum = 0;           // 値をリセットする
-    lastMotor = millis(); // 時間を記録
     nowMotor = (nowMotor==0) ? MOTOR_MAX : 0;
     servo.write(nowMotor);
     moveCount++;          // 動作カウントアップ
     if (EEPROM_ENABLED) {
       EEPROM.write(EEADR_MOVECOUNT, moveCount);      
     }
+    // モーター動作ご、一定時間は処理を停止
+    isLastSensor = false;
     delay(MOTOR_IGNORE_MS);
   }
  
