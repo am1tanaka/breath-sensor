@@ -15,14 +15,15 @@
 const bool SERIAL_ENABLED = true;
 
 /** EEPROMへの作動回数カウントアップを有効にする(EEPROMは寿命があるので、不要になったらfalseにする*/
-const bool EEPROM_ENABLED = false && SERIAL_ENABLED;
+const bool EEPROM_ENABLED = true && SERIAL_ENABLED;
+/** 電圧低下時の表示*/
+const bool VOLT_LOW_ENABLED = false && SERIAL_ENABLED;
 
 /** センサー値を出力*/
 const bool SENSOR_PRINT_ENABLED = false && SERIAL_ENABLED;
 
 /** 電圧の表示*/
 const bool VOLT_ENABLED = false && SERIAL_ENABLED;
-const bool VOLT_LOW_ENABLED = true && SERIAL_ENABLED;
 
 /** 回転とみなす閾値*/
 const int THRESHOLD = 10;
