@@ -100,15 +100,14 @@ const byte CMD_READ = 'r';
 /** 2回連続で閾値を超えていないとカウントしないためのフラグ*/
 bool isSensor[2] = {false, false};
 
+/** セットアップの完了待ち*/
+volatile bool doneSetup = false;
+
 void setup() {
   // LED13を消す
   pinMode(LED, OUTPUT);
   digitalWrite(LED, LOW);
 
-  // サーボの設定
-  servo.attach(SERVO_PIN);
-  servo.write(nowMotor);
-  
   // put your setup code here, to run once:
   if (SERIAL_ENABLED) {
     Serial.begin(9600);
@@ -117,9 +116,21 @@ void setup() {
   if (EEPROM_ENABLED) {
     moveCount = EEPROM.read(EEADR_MOVECOUNT);
   }
+
+  // サーボの初回動作
+  servo.attach(SERVO_PIN);
+  servo.write(MOTOR_MAX);
+  delay(1000);
+  servo.write(nowMotor);
+  delay(1000);
+  doneSetup = true;
 }
 
 void loop() {
+  if (!doneSetup) {
+    return;
+  }
+  
   int min1 = 1024;
   int max1 = 0;
   int min2 = 1024;
