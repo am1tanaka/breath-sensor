@@ -15,23 +15,23 @@
 const bool SERIAL_ENABLED = true;
 
 /** EEPROMへの作動回数カウントアップを有効にする(EEPROMは寿命があるので、不要になったらfalseにする*/
-const bool EEPROM_ENABLED = true && SERIAL_ENABLED;
+const bool EEPROM_ENABLED = false && SERIAL_ENABLED;
 /** 電圧低下時の表示*/
-const bool VOLT_LOW_ENABLED = false && SERIAL_ENABLED;
+const bool VOLT_LOW_ENABLED = true && SERIAL_ENABLED;
 
 /** センサー値を出力*/
-const bool SENSOR_PRINT_ENABLED = false && SERIAL_ENABLED;
+const bool SENSOR_PRINT_ENABLED = true && SERIAL_ENABLED;
 
 /** 電圧の表示*/
 const bool VOLT_ENABLED = false && SERIAL_ENABLED;
 
-/** 回転とみなす閾値*/
+/** 回転とみなす変化の閾値*/
 const int THRESHOLD = 10;
 
-/** 平均化する回数(15)*/
-const float AVERAGE_COUNT = 20;
-/** モーターを発動する値(10)*/
-const float MOTOR_START = 13;
+/** 停止時の減衰パーセント*/
+const float MOTOR_STOP_RATE = 70;
+/** モーターを発動する値*/
+const float MOTOR_START = 20;
 /** 加算値*/
 float nowSum = 0;
 
@@ -210,12 +210,12 @@ void loop() {
   }
   else {
     digitalWrite(LED, LOW);
+    nowSum = nowSum * MOTOR_STOP_RATE / 100.0;
   }
   // 今回の結果を、次回に伝える
   isLastSensor = isNowSensor;
 
   // モーター発動チェック
-  nowSum = nowSum * AVERAGE_COUNT / (AVERAGE_COUNT+1);
   if (nowSum > MOTOR_START) {
     nowSum = 0;           // 値をリセットする
     nowMotor = (nowMotor==0) ? MOTOR_MAX : 0;
