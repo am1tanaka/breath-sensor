@@ -15,9 +15,9 @@
 const bool SERIAL_ENABLED = true;
 
 /** EEPROMへの作動回数カウントアップを有効にする(EEPROMは寿命があるので、不要になったらfalseにする*/
-const bool EEPROM_ENABLED = false && SERIAL_ENABLED;
+const bool EEPROM_ENABLED = true && SERIAL_ENABLED;
 /** 電圧低下時の表示*/
-const bool VOLT_LOW_ENABLED = true && SERIAL_ENABLED;
+const bool VOLT_LOW_ENABLED = false && SERIAL_ENABLED;
 
 /** センサー値を出力*/
 const bool SENSOR_PRINT_ENABLED = false && SERIAL_ENABLED;
@@ -31,7 +31,7 @@ const int THRESHOLD = 40;
 /** 停止時の減衰パーセント*/
 const float MOTOR_STOP_RATE = 70;
 /** モーターを発動する値*/
-const float MOTOR_START = 20;
+const float MOTOR_START = 18;
 /** 加算値*/
 float nowSum = 0;
 
