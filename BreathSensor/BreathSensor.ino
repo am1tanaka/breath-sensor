@@ -26,7 +26,7 @@ const bool SENSOR_PRINT_ENABLED = false && SERIAL_ENABLED;
 const bool VOLT_ENABLED = false && SERIAL_ENABLED;
 
 /** 回転とみなす変化の閾値*/
-const int THRESHOLD = 20;
+const int THRESHOLD = 40;
 
 /** 停止時の減衰パーセント*/
 const float MOTOR_STOP_RATE = 70;
@@ -166,6 +166,7 @@ void loop() {
   unsigned long st = millis();
 
   // 20ms=20,000 micro sec=100 loop
+  bool lastEntry = false; // 前回データを登録したかフラグ
   while ((millis()-st) < CHECK_MS) {
     // voltage
     int nowv = analogRead(SENSOR_VOLT);
@@ -176,6 +177,7 @@ void loop() {
     int s1ido = idoAvg();
     min1 = min(s1ido, min1);
     max1 = max(s1ido, max1);
+    idoIndex = (idoIndex < IDO_AVG_MAX-1) ? idoIndex+1 : 0;
   }
 
   // センサーの停止をチェック
