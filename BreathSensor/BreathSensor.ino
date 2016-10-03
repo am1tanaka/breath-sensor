@@ -20,13 +20,13 @@ const bool EEPROM_ENABLED = false && SERIAL_ENABLED;
 const bool VOLT_LOW_ENABLED = true && SERIAL_ENABLED;
 
 /** センサー値を出力*/
-const bool SENSOR_PRINT_ENABLED = true && SERIAL_ENABLED;
+const bool SENSOR_PRINT_ENABLED = false && SERIAL_ENABLED;
 
 /** 電圧の表示*/
 const bool VOLT_ENABLED = false && SERIAL_ENABLED;
 
 /** 回転とみなす変化の閾値*/
-const int THRESHOLD = 10;
+const int THRESHOLD = 20;
 
 /** 停止時の減衰パーセント*/
 const float MOTOR_STOP_RATE = 70;
@@ -101,6 +101,15 @@ bool isLastSensor = false;
 /** セットアップの完了待ち*/
 volatile bool doneSetup = false;
 
+/** 移動平均回数*/
+const int IDO_AVG_MAX = 3;
+
+/** 移動平均配列*/
+int s1[IDO_AVG_MAX];
+
+/** 現在の移動平均インデックス*/
+int idoIndex = 0;
+
 void setup() {
   // LED13を消す
   pinMode(LED, OUTPUT);
@@ -121,6 +130,11 @@ void setup() {
   delay(1000);
   servo.write(nowMotor);
   delay(1000);
+
+  // 移動平均をリセット
+  for (int i=0 ; i<IDO_AVG_MAX ; i++) {
+    s1[i] = analogRead(SENSOR1);
+  }
   doneSetup = true;
 }
 
@@ -131,8 +145,6 @@ void loop() {
   
   int min1 = 1024;
   int max1 = 0;
-  int min2 = 1024;
-  int max2 = 0;
   int minv = 1024;
 
   // コマンドをチェック
@@ -160,12 +172,10 @@ void loop() {
     minv = min(minv, nowv);
     
     // 200 micro sec
-    int s1 = analogRead(SENSOR1);
-    int s2 = analogRead(SENSOR2);
-    min1 = min(s1, min1);
-    max1 = max(s1, max1);
-    min2 = min(s2, min2);
-    max2 = max(s2, max2);
+    s1[idoIndex] = analogRead(SENSOR1);
+    int s1ido = idoAvg();
+    min1 = min(s1ido, min1);
+    max1 = max(s1ido, max1);
   }
 
   // センサーの停止をチェック
@@ -174,7 +184,7 @@ void loop() {
   //// 電源低下を確認
   if (minv < VOLTAGE_THRESHOLD) {
     if (VOLT_LOW_ENABLED) {
-      dispData(min1, max1, min2, max2, minv);
+      dispData(min1, max1, minv);
       Serial.println("delay:"+String(sensorIgnoreMs));
     }
 
@@ -194,12 +204,12 @@ void loop() {
   if (minv < SENSOR_IGNORE_TICK) {
     if (VOLT_LOW_ENABLED) {
       Serial.print("tick low: ");
-      dispData(min1, max1, min2, max2, minv);
+      dispData(min1, max1, minv);
     }
   }
-  else if (min(min1, min2) > 0) 
+  else if (min1 > 0) 
   {
-    int sa = max(max1-min1, max2-min2);
+    int sa = max1-min1;
     isNowSensor = (sa >= THRESHOLD);
   }
 
@@ -231,7 +241,7 @@ void loop() {
  
   // 0000-0000/0000-0000 (19byte)
   if (SENSOR_PRINT_ENABLED) {
-    dispData(min1, max1, min2, max2, minv);
+    dispData(min1, max1, minv);
   }
 
   // 電圧表示
@@ -244,22 +254,31 @@ void loop() {
 }
 
 /** データをシリアルに表示*/
-void dispData(int min1,int max1, int min2, int max2, int minv) {
+void dispData(int min1,int max1, int minv) {
     String smin1 = "    "+String(min1);
     String smax1 = "    "+String(max1);
-    String smin2 = "    "+String(min2);
-    String smax2 = "    "+String(max2);
     String sa1 = "    "+String(max1-min1);
-    String sa2 = "    "+String(max2-min2);
     String sres = ""
       +String(nowSum)+"/"
       +smin1.substring(smin1.length()-4)+","
       +smax1.substring(smax1.length()-4)+"/"
-      +smin2.substring(smin2.length()-4)+","
-      +smax2.substring(smax2.length()-4)+"/"
-      +sa1.substring(sa1.length()-4)+","
-      +sa2.substring(sa2.length()-4)+"/"
+      +sa1.substring(sa1.length()-4)+"/"
       +String((float)minv*5.0/1023.0);
     Serial.println(sres);
 }
+
+/**
+ * SENSOR1の移動平均を求める
+ */
+int idoAvg() {
+  int sum = 0;
+  int idx = idoIndex;
+  for (int i=0 ; i<IDO_AVG_MAX ; i++) {
+    sum += s1[idx];
+    idx--;
+    idx = (idx < 0) ? IDO_AVG_MAX-1 : idx;
+  }
+  return sum/IDO_AVG_MAX;
+}
+
 
