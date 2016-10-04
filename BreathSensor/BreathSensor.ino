@@ -40,7 +40,7 @@ const unsigned long DELAY_LOOP = 1;
 
 // フォトトランジスタのアナログPIN
 const int SENSOR1 = 0;
-const int SENSOR2 = 2;
+//const int SENSOR2 = 2;
 const int SENSOR_VOLT = 4;
 
 // サーボのピン番号(デジタル)
@@ -63,18 +63,8 @@ int nowMotor = 0;
 
 
 // 電圧チェック
-/** この電圧を下回ったら、センサーを一定時間停止させる*/
-const int VOLTAGE_THRESHOLD = 1000;
-/** 検出停止ms*/
-const unsigned long SENSOR_IGNORE_MS = 200;
-/** 最大の停止時間*/
-const unsigned long SENSOR_IGNORE_MAX = 2000;
 /** この値より電圧が低い時は、停止はしないが加算もしない*/
 const unsigned long SENSOR_IGNORE_TICK = 1012;
-/** 1ループごとに減衰させる待ち時間のパーセンテージ*/
-const unsigned long SENSOR_GENSUI = 99;
-/** 現在の停止時間*/
-unsigned long sensorIgnoreMs = SENSOR_IGNORE_MS;
 
 // 9600 bps
 // 1200 byte/s
@@ -162,10 +152,8 @@ void loop() {
     }
   } while(cmd != 255);
 
-  // 電圧が低い時は、無効時間を設定
-  unsigned long st = millis();
-
   // 20ms=20,000 micro sec=100 loop
+  unsigned long st = millis();
   bool lastEntry = false; // 前回データを登録したかフラグ
   while ((millis()-st) < CHECK_MS) {
     // voltage
@@ -178,27 +166,6 @@ void loop() {
     min1 = min(s1ido, min1);
     max1 = max(s1ido, max1);
     idoIndex = (idoIndex < IDO_AVG_MAX-1) ? idoIndex+1 : 0;
-  }
-
-  // センサーの停止をチェック
-  sensorIgnoreMs = sensorIgnoreMs*SENSOR_GENSUI/100;
-  sensorIgnoreMs = max(sensorIgnoreMs, SENSOR_IGNORE_MS);
-  //// 電源低下を確認
-  if (minv < VOLTAGE_THRESHOLD) {
-    if (VOLT_LOW_ENABLED) {
-      dispData(min1, max1, minv);
-      Serial.println("delay:"+String(sensorIgnoreMs));
-    }
-
-    digitalWrite(LED, LOW);
-    isLastSensor = false;
-    nowSum = 0;
-    delay(sensorIgnoreMs);
-
-    // 待ち時間を増加させる
-    sensorIgnoreMs = sensorIgnoreMs*2;
-    sensorIgnoreMs = min(sensorIgnoreMs, SENSOR_IGNORE_MAX);
-    return;
   }
 
   // 閾値のオーバーチェック
